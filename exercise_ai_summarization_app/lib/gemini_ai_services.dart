@@ -3,12 +3,12 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class GeminiAiServices {
-  
+  static String modelId = "gemini-2.5-flash-lite";
+
   final String _baseUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+      'https://generativelanguage.googleapis.com/v1beta/models/$modelId:generateContent';
 
-    Future<String> summarizeText(String text) async {
-
+  Future<String> summarizeText(String text) async {
     final apiKey = dotenv.env['GEMINI_API_KEY'];
 
     if (apiKey == null || apiKey.isEmpty) {
@@ -17,21 +17,30 @@ class GeminiAiServices {
       );
     }
 
-
-    final headers = {'Content-Type': 'application/json', 'x-goog-api-key': apiKey};
+    final headers = {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
+    };
 
     final body = jsonEncode({
       "contents": [
         {
           "parts": [
-            {"text": "Summarize the following text, provider answer as \n if the user is new to Ai but has coding experience:\n\n$text"},
+            {
+              "text":
+                  "Summarize the following text, provider answer as \n if the user is new to Ai . Do answer in points , Optional: Add Examples if possbile. \n User Input:\n\n$text",
+            },
           ],
         },
       ],
     });
 
     try {
-      final response = await http.post(Uri.parse(_baseUrl), headers: headers, body: body);
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: headers,
+        body: body,
+      );
 
       if (response.statusCode == 200) {
         final decodedResponse = jsonDecode(response.body);
