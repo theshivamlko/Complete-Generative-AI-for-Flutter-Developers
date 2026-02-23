@@ -1,12 +1,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'theme/app_theme.dart';
 import 'models/chat_message.dart';
+import 'services/gemini_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -40,88 +43,112 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final List<ChatMessage> _messages = [
+  // ── ValueNotifiers ──────────────────────────────────────────────────────────
+  /// Full list of messages displayed in the chat.
+  final ValueNotifier<List<ChatMessage>>
+  _messagesNotifier = ValueNotifier<List<ChatMessage>>([
     ChatMessage(
       text:
           "Hi! I'm your AI Tutor ✨\nAsk me anything — I can explain concepts, analyse images, and more.",
       isUser: false,
     ),
-  ];
+  ]);
 
+  /// Whether the AI is currently "typing" (shows the animated dots indicator).
+  final ValueNotifier<bool> _isTypingNotifier = ValueNotifier<bool>(false);
+
+  /// The image the user has attached but not yet sent.
+  final ValueNotifier<XFile?> _selectedImageNotifier = ValueNotifier<XFile?>(
+    null,
+  );
+
+  // ── Services ─────────────────────────────────────────────────────────────────
+  final GeminiService _gemini = GeminiService(
+    apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
+  );
+
+  // ── Controllers ─────────────────────────────────────────────────────────────
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
-  XFile? _selectedImage;
   final ImagePicker _picker = ImagePicker();
-  bool _isTyping = false;
 
+  // ── Lifecycle ───────────────────────────────────────────────────────────────
+  @override
+  void dispose() {
+    _messagesNotifier.dispose();
+    _isTypingNotifier.dispose();
+    _selectedImageNotifier.dispose();
+    _textController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  // ── Actions ─────────────────────────────────────────────────────────────────
   Future<void> _pickImage() async {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 80,
       );
-      if (image != null) setState(() => _selectedImage = image);
+      if (image != null) _selectedImageNotifier.value = image;
     } catch (e) {
       debugPrint('Image pick error: $e');
     }
   }
 
-  void _removeSelectedImage() => setState(() => _selectedImage = null);
+  void _removeSelectedImage() => _selectedImageNotifier.value = null;
 
   void _sendMessage() {
     final text = _textController.text.trim();
-    if (text.isEmpty && _selectedImage == null) return;
+    final image = _selectedImageNotifier.value;
+    if (text.isEmpty && image == null) return;
 
-    final imagePath = _selectedImage?.path;
+    final imagePath = image?.path;
 
-    setState(() {
-      _messages.insert(
-        0,
-        ChatMessage(text: text, isUser: true, imagePath: imagePath),
-      );
-      _selectedImage = null;
-      _textController.clear();
-      _isTyping = true;
-    });
+    // 1. Add the user message
+    _messagesNotifier.value = [
+      ChatMessage(text: text, isUser: true, imagePath: imagePath),
+      ..._messagesNotifier.value,
+    ];
+    _selectedImageNotifier.value = null;
+    _textController.clear();
+    _isTypingNotifier.value = true;
 
-    _simulateAiReply(text, imagePath != null);
+    _getAiReply(text, imagePath);
   }
 
-  void _simulateAiReply(String userText, bool userSentImage) {
-    Future.delayed(const Duration(milliseconds: 1800), () {
-      if (!mounted) return;
+  Future<void> _getAiReply(String userText, String? imagePath) async {
+    // 2. Insert a blank AI bubble — we will stream tokens into it
+    _messagesNotifier.value = [
+      ChatMessage(text: '', isUser: false),
+      ..._messagesNotifier.value,
+    ];
+    _isTypingNotifier.value = false;
 
-      String replyText =
-          "That's a great question! Let me break it down for you step by step.";
-      String? replyImage;
-      bool isNetwork = false;
+    String accumulated = '';
 
-      if (userSentImage ||
-          userText.toLowerCase().contains('image') ||
-          userText.toLowerCase().contains('diagram') ||
-          userText.toLowerCase().contains('show')) {
-        replyText = "Here's a visual to help illustrate the concept:";
-        replyImage =
-            "https://picsum.photos/seed/${DateTime.now().millisecond}/400/280";
-        isNetwork = true;
+    try {
+      final stream = _gemini.sendMessageStream(userText, imagePath: imagePath);
+
+      await for (final chunk in stream) {
+        if (!mounted) return;
+        accumulated += chunk;
+        // 3. Replace the first (newest) AI bubble with the growing text
+        final updated = List<ChatMessage>.from(_messagesNotifier.value);
+        updated[0] = updated[0].copyWith(text: accumulated);
+        _messagesNotifier.value = updated;
       }
-
-      setState(() {
-        _isTyping = false;
-        _messages.insert(
-          0,
-          ChatMessage(
-            text: replyText,
-            isUser: false,
-            imagePath: replyImage,
-            isNetworkImage: isNetwork,
-          ),
-        );
-      });
-    });
+    } catch (e) {
+      if (!mounted) return;
+      final updated = List<ChatMessage>.from(_messagesNotifier.value);
+      updated[0] = updated[0].copyWith(
+        text: '⚠️ Something went wrong: ${e.toString()}',
+      );
+      _messagesNotifier.value = updated;
+    }
   }
 
+  // ── Build ────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -129,14 +156,45 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: _buildAppBar(),
       body: Column(
         children: [
-          Expanded(child: _buildMessageList()),
-          if (_isTyping) _buildTypingIndicator(),
-          _ChatInputArea(
-            controller: _textController,
-            selectedImage: _selectedImage,
-            onPickImage: _pickImage,
-            onRemoveImage: _removeSelectedImage,
-            onSend: _sendMessage,
+          // ── Message list — rebuilds only when messages list changes
+          Expanded(
+            child: ValueListenableBuilder<List<ChatMessage>>(
+              valueListenable: _messagesNotifier,
+              builder: (context, messages, _) {
+                return ListView.builder(
+                  controller: _scrollController,
+                  reverse: true,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) =>
+                      ChatBubbleWidget(message: messages[index]),
+                );
+              },
+            ),
+          ),
+          // ── Typing indicator — rebuilds only when _isTyping changes
+          ValueListenableBuilder<bool>(
+            valueListenable: _isTypingNotifier,
+            builder: (context, isTyping, _) {
+              if (!isTyping) return const SizedBox.shrink();
+              return _buildTypingIndicator();
+            },
+          ),
+          // ── Input area — rebuilds only when selected image changes
+          ValueListenableBuilder<XFile?>(
+            valueListenable: _selectedImageNotifier,
+            builder: (context, selectedImage, _) {
+              return _ChatInputArea(
+                controller: _textController,
+                selectedImage: selectedImage,
+                onPickImage: _pickImage,
+                onRemoveImage: _removeSelectedImage,
+                onSend: _sendMessage,
+              );
+            },
           ),
         ],
       ),
@@ -165,7 +223,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       title: Row(
         children: [
-          // AI Avatar with gradient ring
           Container(
             width: 38,
             height: 38,
@@ -224,17 +281,6 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildMessageList() {
-    return ListView.builder(
-      controller: _scrollController,
-      reverse: true,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      itemCount: _messages.length,
-      itemBuilder: (context, index) =>
-          ChatBubbleWidget(message: _messages[index]),
     );
   }
 
