@@ -3,8 +3,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:gal/gal.dart'; // Added dependency for saving images to gallery
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+import 'api_service.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
+
   runApp(const MakeMeAnimeApp());
 }
 
@@ -52,6 +58,7 @@ class AnimeFilterScreen extends StatefulWidget {
 
 class _AnimeFilterScreenState extends State<AnimeFilterScreen> {
   File? _selectedImage;
+  File? _generatedImageFile;
   String _selectedFilter = 'Studio Ghibli';
   bool _isGenerating = false;
   bool _hasResult = false;
@@ -74,6 +81,7 @@ class _AnimeFilterScreenState extends State<AnimeFilterScreen> {
       if (image != null) {
         setState(() {
           _selectedImage = File(image.path);
+          _generatedImageFile = null;
           _hasResult = false; // Reset result when a new image is picked
         });
       }
@@ -97,15 +105,32 @@ class _AnimeFilterScreenState extends State<AnimeFilterScreen> {
     setState(() {
       _isGenerating = true;
       _hasResult = false;
+      _generatedImageFile = null;
     });
 
-    // Simulate AI generation delay
-    await Future.delayed(const Duration(seconds: 3));
+    try {
+      final resultFile = await ApiService.generateAnimeImage(
+        _selectedImage!,
+        _selectedFilter,
+      );
 
-    setState(() {
-      _isGenerating = false;
-      _hasResult = true;
-    });
+      setState(() {
+        _generatedImageFile = resultFile;
+        _isGenerating = false;
+        _hasResult = true;
+      });
+    } catch (e) {
+      if (mounted) {
+        // Use a more user-friendly error message if it's our direct exception
+        final errorMessage = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMessage)));
+      }
+      setState(() {
+        _isGenerating = false;
+      });
+    }
   }
 
   void _showImageSourceDialog() {
@@ -214,23 +239,35 @@ class _AnimeFilterScreenState extends State<AnimeFilterScreen> {
                 Stack(
                   alignment: Alignment.center,
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        _selectedImage!,
-                        fit: BoxFit.cover,
+                    if (_generatedImageFile != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          _generatedImageFile!,
+                          fit: BoxFit.cover,
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          width: double.infinity,
+                        ),
+                      ),
+                    if (_generatedImageFile == null) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          _selectedImage!,
+                          fit: BoxFit.cover,
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          width: double.infinity,
+                        ),
+                      ),
+                      Container(
                         height: MediaQuery.of(context).size.height * 0.5,
                         width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.4),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                    ),
-                    Container(
-                      height: MediaQuery.of(context).size.height * 0.5,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.4),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
+                    ],
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -259,7 +296,9 @@ class _AnimeFilterScreenState extends State<AnimeFilterScreen> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      _saveImageToGallery(_selectedImage!);
+                      if (_generatedImageFile != null) {
+                        _saveImageToGallery(_generatedImageFile!);
+                      }
                       Navigator.of(context).pop(); // Close popup after saving
                     },
                     icon: const Icon(Icons.download, color: Colors.black),
@@ -335,7 +374,7 @@ class _AnimeFilterScreenState extends State<AnimeFilterScreen> {
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: _selectedImage != null
-                    ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                    ? Image.file(_selectedImage!, fit: BoxFit.contain)
                     : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -428,7 +467,7 @@ class _AnimeFilterScreenState extends State<AnimeFilterScreen> {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                            color: Colors.black,
+                            color: theme.colorScheme.primary,
                             strokeWidth: 2,
                           ),
                         ),
@@ -443,13 +482,28 @@ class _AnimeFilterScreenState extends State<AnimeFilterScreen> {
                         ),
                       ],
                     )
-                  : Text(
-                      'Turn into Anime!',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
-                      ),
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: Icon(
+                            Icons.auto_awesome,
+                            size: 20,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'Turn into Anime!',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
                     ),
             ),
 
@@ -492,69 +546,67 @@ class _AnimeFilterScreenState extends State<AnimeFilterScreen> {
                     ? Stack(
                         alignment: Alignment.center,
                         children: [
-                          // In a real app, this would be an Image.network() or similar from the AI API
-                          Opacity(
-                            opacity: 0.4,
-                            child: _selectedImage != null
-                                ? Image.file(
-                                    _selectedImage!,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.auto_awesome,
-                                size: 50,
-                                color: theme.colorScheme.primary,
+                          if (_generatedImageFile != null)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(15),
+                              child: Image.file(
+                                _generatedImageFile!,
+                                fit: BoxFit.contain,
+                                width: double.infinity,
+                                height: double.infinity,
                               ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Style: $_selectedFilter',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                            )
+                          else if (_selectedImage != null)
+                            Opacity(
+                              opacity: 0.4,
+                              child: Image.file(
+                                _selectedImage!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                              ),
+                            ),
+                          if (_generatedImageFile == null)
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.auto_awesome,
+                                  size: 50,
                                   color: theme.colorScheme.primary,
                                 ),
-                              ),
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black54,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Text(
-                                  'Tap to view and save',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 24),
-                                child: Text(
-                                  '(Placeholder overlay)',
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Style: $_selectedFilter',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 10,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Text(
+                                    'Tap to view and save',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                              ],
+                            ),
                         ],
                       )
                     : Center(
