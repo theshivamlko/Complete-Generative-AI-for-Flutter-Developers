@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'theme/app_theme.dart';
+import 'models/chat_message.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,22 +28,6 @@ class AiTutorApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
     );
   }
-}
-
-// ─── Data Model ──────────────────────────────────────────────────────────────
-
-class ChatMessage {
-  final String text;
-  final bool isUser;
-  final String? imagePath;
-  final bool isNetworkImage;
-
-  ChatMessage({
-    required this.text,
-    required this.isUser,
-    this.imagePath,
-    this.isNetworkImage = false,
-  });
 }
 
 // ─── Chat Screen ──────────────────────────────────────────────────────────────
