@@ -1,18 +1,12 @@
 import 'dart:io';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
-/// Manages the Gemini generative model and maintains conversation history
-/// via a persistent [ChatSession].
-///
-/// The API key is loaded from .env via flutter_dotenv and passed in at
-/// construction time from main.dart.
+ 
 class GeminiService {
-  // ── Config ────────────────────────────────────────────────────────────────
 
   /// The Gemini model to use.
   static const String _model = 'gemini-2.5-flash';
 
-  // ── State ─────────────────────────────────────────────────────────────────
 
   late final GenerativeModel _generativeModel;
   late ChatSession _chat; // non-final so resetChat() can reassign it
@@ -24,8 +18,9 @@ class GeminiService {
       model: _model,
       apiKey: apiKey,
       systemInstruction: Content.system(
-        'You are a helpful, friendly AI Tutor. '
-        'Explain concepts clearly with examples. '
+        'You are a helpful, friendly AI Tutor for school children. You solve follwing cases '
+        '1. Explain concepts clearly with examples. \n '
+        '2. Analyse images and provide insights ro solves question given in image \n '
         'Keep answers concise unless the user asks for more detail.',
       ),
     );

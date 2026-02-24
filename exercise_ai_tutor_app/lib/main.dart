@@ -49,7 +49,7 @@ class _ChatScreenState extends State<ChatScreen> {
   _messagesNotifier = ValueNotifier<List<ChatMessage>>([
     ChatMessage(
       text:
-          "Hi! I'm your AI Tutor ✨\nAsk me anything — I can explain concepts, analyse images, and more.",
+          "Hi! I'm your AI Tutor ✨\nAsk me anything - I can explain concepts, analyse images, and more.",
       isUser: false,
     ),
   ]);
