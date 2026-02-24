@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/chat_message.dart';
 import 'package:intl/intl.dart';
+import '../theme/app_theme.dart';
 
 class ChatBubble extends StatelessWidget {
   final ChatMessage message;
@@ -33,15 +34,11 @@ class ChatBubble extends StatelessWidget {
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF56CCF2), Color(0xFF2F80ED)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: AppGradients.botAvatar,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2F80ED).withOpacity(0.4),
+            color: AppColors.seedBlue.withOpacity(0.4),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -56,15 +53,11 @@ class ChatBubble extends StatelessWidget {
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF9966), Color(0xFFFF5E62)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: AppGradients.userAvatar,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF5E62).withOpacity(0.4),
+            color: AppColors.userBubbleEnd.withOpacity(0.4),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -83,17 +76,7 @@ class ChatBubble extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            gradient: isUser
-                ? const LinearGradient(
-                    colors: [Color(0xFFFF9966), Color(0xFFFF5E62)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : const LinearGradient(
-                    colors: [Color(0xFFE8F4FD), Color(0xFFDDEEFB)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+            gradient: isUser ? AppGradients.userAvatar : AppGradients.botBubble,
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(18),
               topRight: const Radius.circular(18),
@@ -111,7 +94,7 @@ class ChatBubble extends StatelessWidget {
           child: Text(
             message.text,
             style: TextStyle(
-              color: isUser ? Colors.white : const Color(0xFF1A2E4A),
+              color: isUser ? Colors.white : AppColors.textDark,
               fontSize: 15,
               height: 1.4,
             ),
@@ -120,7 +103,7 @@ class ChatBubble extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           DateFormat('h:mm a').format(message.timestamp),
-          style: const TextStyle(color: Color(0xFF9EAEC0), fontSize: 11),
+          style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
         ),
       ],
     );

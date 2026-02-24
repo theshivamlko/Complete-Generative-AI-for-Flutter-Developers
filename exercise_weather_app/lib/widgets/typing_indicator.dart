@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class TypingIndicator extends StatefulWidget {
   const TypingIndicator({super.key});
@@ -66,9 +67,7 @@ class _TypingIndicatorState extends State<TypingIndicator>
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF56CCF2), Color(0xFF2F80ED)],
-              ),
+              gradient: AppGradients.botAvatar,
               borderRadius: BorderRadius.circular(18),
             ),
             child: const Icon(Icons.cloud, color: Colors.white, size: 20),
@@ -77,9 +76,7 @@ class _TypingIndicatorState extends State<TypingIndicator>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFE8F4FD), Color(0xFFDDEEFB)],
-              ),
+              gradient: AppGradients.botBubble,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(18),
                 topRight: Radius.circular(18),
@@ -105,7 +102,7 @@ class _TypingIndicatorState extends State<TypingIndicator>
                       width: 8,
                       height: 8,
                       decoration: const BoxDecoration(
-                        color: Color(0xFF2F80ED),
+                        color: AppColors.seedBlue,
                         shape: BoxShape.circle,
                       ),
                     ),

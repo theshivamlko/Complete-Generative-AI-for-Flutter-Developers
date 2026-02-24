@@ -2,6 +2,14 @@
 
 Weather Chat App
 
+## Gemini API Setup
+
+This app uses the `google_generative_ai` package. Provide your API key at run time:
+
+```bash
+flutter run --dart-define=GEMINI_API_KEY=YOUR_KEY
+```
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
