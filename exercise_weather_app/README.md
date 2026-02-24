@@ -2,13 +2,26 @@
 
 Weather Chat App
 
-## Gemini API Setup
+## API Setup
 
-This app uses the `google_generative_ai` package. Provide your API key at run time:
+This app uses Google Gemini AI and WeatherAPI. Provide both API keys at run time:
 
 ```bash
-flutter run --dart-define=GEMINI_API_KEY=YOUR_KEY
+flutter run --dart-define=GEMINI_API_KEY=YOUR_GEMINI_KEY --dart-define=WEATHER_API_KEY=YOUR_WEATHER_KEY
 ```
+
+### Get API Keys
+
+1. **Gemini API**: Get your free key at [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. **WeatherAPI**: Get your free key at [WeatherAPI.com](https://www.weatherapi.com/signup.aspx)
+
+## Features
+
+- 🤖 AI-powered weather chat assistant using Google Gemini
+- 🌍 Get weather by city name, coordinates, or IP address
+- 📍 GPS location support - ask "What's the weather here?"
+- 🔐 Runtime permission handling for location access
+- 🎨 Beautiful gradient UI with themed colors
 
 ## Getting Started
 

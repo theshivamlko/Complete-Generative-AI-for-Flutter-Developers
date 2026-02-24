@@ -10,22 +10,25 @@ class WeatherTools {
     functionDeclarations: [
       FunctionDeclaration(
         'get_current_weather',
-        'Get current weather information for a specific city',
+        'Get current weather information for a specific location. '
+        'Location can be: city name (e.g., "London"), '
+        'latitude and longitude (e.g., "48.8567,2.3508"), '
+        'or IP address (e.g., "100.0.0.1")',
         Schema(
           SchemaType.object,
           properties: {
-            'city': Schema(
+            'location': Schema(
               SchemaType.string,
-              description: 'The name of the city to get weather for',
+              description: 'Location query: city name, lat/long coordinates, or IP address',
             ),
           },
-          requiredProperties: ['city'],
+          requiredProperties: ['location'],
         ),
       ),
     ],
   );
 
-  static Future<Map<String, dynamic>> getCurrentWeather(String city) async {
+  static Future<Map<String, dynamic>> getCurrentWeather(String location) async {
     final String _weatherApiKey = dotenv.env['WEATHER_API_KEY'] ?? '';
     if (_weatherApiKey.isEmpty) {
       return {
@@ -35,7 +38,7 @@ class WeatherTools {
     }
 
     try {
-      final uri = Uri.parse('$_baseUrl?key=$_weatherApiKey&q=$city&aqi=no');
+      final uri = Uri.parse('$_baseUrl?key=$_weatherApiKey&q=$location');
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
@@ -53,7 +56,7 @@ class WeatherTools {
       } else {
         return {
           'error':
-              'Could not fetch weather for $city. Status: ${response.statusCode}',
+              'Could not fetch weather for $location. Status: ${response.statusCode}',
         };
       }
     } catch (e) {
@@ -63,8 +66,8 @@ class WeatherTools {
 
   static Future<String> handleFunctionCall(FunctionCall functionCall) async {
     if (functionCall.name == 'get_current_weather') {
-      final city = functionCall.args['city'] as String;
-      final weatherData = await getCurrentWeather(city);
+      final location = functionCall.args['location'] as String;
+      final weatherData = await getCurrentWeather(location);
       return jsonEncode(weatherData);
     }
     return jsonEncode({'error': 'Unknown function: ${functionCall.name}'});
