@@ -9,119 +9,81 @@ class PermissionTools {
       FunctionDeclaration(
         'check_location_permission',
         'Check if the app currently has permission to access GPS location. '
-        'Call this FIRST before trying to get location. '
-        'Returns: granted (true/false), denied, permanentlyDenied, status.',
-        Schema(
-          SchemaType.object,
-          properties: {},
-        ),
+            'Call this FIRST before trying to get location. '
+            'Returns: granted (true/false), denied, permanentlyDenied, status.',
+        Schema(SchemaType.object, properties: {}),
       ),
       FunctionDeclaration(
         'request_location_permission',
         'Request permission to access GPS location from the user. '
-        'Call this ONLY if check_location_permission shows permission is NOT granted. '
-        'This will show a system permission dialog to the user. '
-        'Returns: granted (true/false), status, message.',
-        Schema(
-          SchemaType.object,
-          properties: {},
-        ),
+            'Call this ONLY if check_location_permission shows permission is NOT granted. '
+            'This will show a system permission dialog to the user. '
+            'Returns: granted (true/false), status, message.',
+        Schema(SchemaType.object, properties: {}),
       ),
       FunctionDeclaration(
         'get_current_location',
         'Get the current GPS coordinates (latitude and longitude) of the device. '
-        'Call this ONLY AFTER permission is granted. '
-        'Returns: latitude, longitude, and coordinates string in "lat,long" format for weather API.',
-        Schema(
-          SchemaType.object,
-          properties: {},
-        ),
+            'Call this ONLY AFTER permission is granted. '
+            'Returns: latitude, longitude, and coordinates string in "lat,long" format for weather API.',
+        Schema(SchemaType.object, properties: {}),
       ),
     ],
   );
 
   /// Check if location permission is granted
-  static Future<Map<String, dynamic>> checkLocationPermission() async {
+  static Future<String> checkLocationPermission() async {
     try {
-      print('📋 Checking location permission...');
+      print('Checking location permission...');
       final permission = await Permission.location.status;
 
-      final result = {
-        'granted': permission.isGranted,
-        'denied': permission.isDenied,
-        'permanentlyDenied': permission.isPermanentlyDenied,
-        'restricted': permission.isRestricted,
-        'limited': permission.isLimited,
-        'status': permission.toString(),
-      };
-
-      print('📋 Permission status: ${permission.isGranted ? "GRANTED" : "NOT GRANTED"}');
-      return result;
+      return permission.toString();
     } catch (e) {
-      print('❌ Error checking permission: $e');
-      return {
-        'error': 'Failed to check location permission: ${e.toString()}',
-      };
+      print('Error checking permission: $e');
+      return 'Error: Failed to check location permission: ${e.toString()}';
     }
   }
 
   /// Request location permission from the user
-  static Future<Map<String, dynamic>> requestLocationPermission() async {
+  static Future<String> requestLocationPermission() async {
     try {
-      print('🔐 Requesting location permission...');
+      print('Requesting location permission...');
       final status = await Permission.location.request();
 
-      final result = {
-        'granted': status.isGranted,
-        'denied': status.isDenied,
-        'permanentlyDenied': status.isPermanentlyDenied,
-        'status': status.toString(),
-        'message': status.isGranted
-            ? 'Location permission granted successfully'
-            : status.isPermanentlyDenied
-                ? 'Location permission permanently denied. Please enable it in app settings.'
-                : 'Location permission denied',
-      };
 
-      print('🔐 Permission request result: ${status.isGranted ? "GRANTED" : "DENIED"}');
-      return result;
+      return status.toString();
     } catch (e) {
-      print('❌ Error requesting permission: $e');
-      return {
-        'error': 'Failed to request location permission: ${e.toString()}',
-      };
+      print('Error requesting permission: $e');
+      return 'Error: Failed to check location permission: ${e.toString()}';
+
     }
   }
 
   /// Get current GPS location coordinates
   static Future<Map<String, dynamic>> getCurrentLocation() async {
     try {
-      print('📍 Getting current location...');
+      print('Getting current location...');
 
       // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        print('❌ Location services disabled');
-        return {
-          'error': 'Location services are disabled. Please enable GPS.',
-        };
+        print('Location services disabled');
+        return {'error': 'Location services are disabled. Please enable GPS.'};
       }
 
       // Check permission
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
-        print('⚠️ Permission denied, requesting...');
+        print('Permission denied, requesting...');
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          print('❌ Permission request denied');
-          return {
-            'error': 'Location permission denied',
-          };
+          print('Permission request denied');
+          return {'error': 'Location permission denied'};
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        print('❌ Permission permanently denied');
+        print('Permission permanently denied');
         return {
           'error':
               'Location permissions are permanently denied. Please enable them in settings.',
@@ -129,7 +91,7 @@ class PermissionTools {
       }
 
       // Get current position
-      print('🛰️ Fetching GPS coordinates...');
+      print('Fetching GPS coordinates...');
       Position position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
@@ -137,7 +99,7 @@ class PermissionTools {
       );
 
       final coordinates = '${position.latitude},${position.longitude}';
-      print('✅ Location obtained: $coordinates');
+      print('Location obtained: $coordinates');
 
       return {
         'latitude': position.latitude,
@@ -150,10 +112,8 @@ class PermissionTools {
         'coordinates': coordinates,
       };
     } catch (e) {
-      print('❌ Error getting location: $e');
-      return {
-        'error': 'Failed to get current location: ${e.toString()}',
-      };
+      print('Error getting location: $e');
+      return {'error': 'Failed to get current location: ${e.toString()}'};
     }
   }
 
@@ -173,10 +133,7 @@ class PermissionTools {
         return jsonEncode(result);
 
       default:
-        return jsonEncode({
-          'error': 'Unknown function: ${functionCall.name}',
-        });
+        return jsonEncode({'error': 'Unknown function: ${functionCall.name}'});
     }
   }
 }
-
