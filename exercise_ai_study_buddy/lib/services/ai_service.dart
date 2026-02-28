@@ -1,4 +1,5 @@
-import 'package:firebase_vertexai/firebase_vertexai.dart';
+
+import 'package:firebase_ai/firebase_ai.dart';
 
 class AIService {
   late final GenerativeModel _model;
@@ -9,13 +10,13 @@ class AIService {
   }
 
   void _initialize() {
-    // Initialize the Gemini model
-    _model = FirebaseVertexAI.instance.generativeModel(
-      model: 'gemini-1.5-flash',
+
+    _model = FirebaseAI.googleAI().generativeModel(
+      model: 'gemini-2.5-flash',
       systemInstruction: Content.system(
         'You are a helpful AI Study Buddy assistant. Your role is to help students '
         'learn, understand concepts, answer questions, create quizzes, and provide '
-        'educational support. Be encouraging, clear, and concise in your responses. '
+        'educational support. Be++ encouraging, clear, and concise in your responses. '
         'Break down complex topics into simpler explanations when needed.',
       ),
     );
