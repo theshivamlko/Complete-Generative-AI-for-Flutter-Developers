@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/message.dart';
-import '../services/ai_service.dart';
+import '../viewmodels/chat_view_model.dart';
 import '../widgets/chat_app_bar.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/loading_indicator.dart';
@@ -14,50 +14,16 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  late final ChatViewModel _viewModel;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final AIService _aiService = AIService();
 
-  final List<Message> _messages = [
-    Message.ai("Hello! I'm your AI Study Buddy. How can I help you today?"),
-  ];
-
-  bool _isLoading = false;
-
-  void _sendMessage() async {
-    if (_messageController.text.trim().isEmpty || _isLoading) return;
-
-    final userMessage = _messageController.text;
-    _messageController.clear();
-
-    // Add user message to the list
-    setState(() {
-      _messages.add(Message.user(userMessage));
-      _isLoading = true;
-    });
-
-    _scrollToBottom();
-
-    try {
-      // Send message to Gemini and get response
-      final aiResponse = await _aiService.sendMessage(userMessage);
-
-      setState(() {
-        _messages.add(Message.ai(aiResponse));
-        _isLoading = false;
-      });
-
-      _scrollToBottom();
-    } catch (e) {
-      setState(() {
-        _messages.add(Message.ai(
-          "Sorry, I encountered an error: ${e.toString()}",
-        ));
-        _isLoading = false;
-      });
-
-      _scrollToBottom();
-    }
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = ChatViewModel();
+    // Listen to messages changes and scroll
+    _viewModel.messagesNotifier.addListener(_scrollToBottom);
   }
 
   void _scrollToBottom() {
@@ -72,10 +38,21 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  void _handleSendMessage() async {
+    if (_messageController.text.trim().isEmpty) return;
+
+    final userMessage = _messageController.text;
+    _messageController.clear();
+
+    await _viewModel.sendMessage(userMessage);
+  }
+
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _viewModel.messagesNotifier.removeListener(_scrollToBottom);
+    _viewModel.dispose();
     super.dispose();
   }
 
@@ -87,23 +64,53 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length + (_isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == _messages.length) {
-                  return const LoadingIndicator();
-                }
-                final message = _messages[index];
-                return ChatBubble(message: message);
+            child: ValueListenableBuilder<List<Message>>(
+              valueListenable: _viewModel.messagesNotifier,
+              builder: (context, messages, child) {
+                return ValueListenableBuilder<bool>(
+                  valueListenable: _viewModel.isLoadingNotifier,
+                  builder: (context, isLoading, child) {
+                    return ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: messages.length + (isLoading ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == messages.length) {
+                          return const LoadingIndicator();
+                        }
+                        final message = messages[index];
+                        return ChatBubble(message: message);
+                      },
+                    );
+                  },
+                );
               },
             ),
           ),
-          MessageInput(
-            controller: _messageController,
-            onSend: _sendMessage,
-            isLoading: _isLoading,
+          ValueListenableBuilder<bool>(
+            valueListenable: _viewModel.isLoadingNotifier,
+            builder: (context, isLoading, child) {
+              return ValueListenableBuilder<bool>(
+                valueListenable: _viewModel.isRecordingNotifier,
+                builder: (context, isRecording, child) {
+                  return MessageInput(
+                    controller: _messageController,
+                    onSend: _handleSendMessage,
+                    isLoading: isLoading,
+                    isRecording: isRecording,
+                    onStartRecording: () async {
+                      await _viewModel.startAudioRecording();
+                    },
+                    onStopRecording: () async {
+                      await _viewModel.stopAndSendAudio();
+                    },
+                    onCancelRecording: () async {
+                      await _viewModel.cancelAudioRecording();
+                    },
+                  );
+                },
+              );
+            },
           ),
         ],
       ),

@@ -25,7 +25,7 @@ class AIService {
     _chatSession = _model.startChat();
   }
 
-  /// Send a message to the AI and get a response
+  /// Send a text message to the AI and get a response
   Future<String> sendMessage(String message) async {
     try {
       final response = await _chatSession.sendMessage(
@@ -35,6 +35,19 @@ class AIService {
       return response.text ?? "I'm sorry, I couldn't generate a response.";
     } catch (e) {
       throw Exception('Failed to get AI response: ${e.toString()}');
+    }
+  }
+
+  /// Send audio as text transcript to the AI
+  Future<String> sendAudioTranscript(String audioTranscript) async {
+    try {
+      final response = await _chatSession.sendMessage(
+        Content.text('I recorded this audio: "$audioTranscript". Please respond to it.'),
+      );
+
+      return response.text ?? "I'm sorry, I couldn't process the audio.";
+    } catch (e) {
+      throw Exception('Failed to process audio: ${e.toString()}');
     }
   }
 
@@ -48,4 +61,6 @@ class AIService {
     _chatSession = _model.startChat();
   }
 }
+
+
 
