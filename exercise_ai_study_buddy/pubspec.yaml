@@ -22,7 +22,7 @@ dependencies:
   # Firebase dependencies
   firebase_core: ^4.4.0
   firebase_ai: ^3.8.0
-  record: ^5.0.0
+  record: ^6.2.0
   path:
   path_provider:
 

@@ -1,4 +1,5 @@
 
+import 'dart:typed_data';
 import 'package:firebase_ai/firebase_ai.dart';
 
 class AIService {
@@ -38,11 +39,14 @@ class AIService {
     }
   }
 
-  /// Send audio as text transcript to the AI
-  Future<String> sendAudioTranscript(String audioTranscript) async {
+  /// Send audio as InlineDataPart to the AI in the same conversation
+  Future<String> sendAudioTranscript(Uint8List audioBytes) async {
     try {
       final response = await _chatSession.sendMessage(
-        Content.text('I recorded this audio: "$audioTranscript". Please respond to it.'),
+        Content.multi([
+          TextPart('Please transcribe and respond to this audio message.'),
+          InlineDataPart('audio/wav', audioBytes),
+        ]),
       );
 
       return response.text ?? "I'm sorry, I couldn't process the audio.";

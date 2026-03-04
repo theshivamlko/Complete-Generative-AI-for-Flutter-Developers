@@ -25,6 +25,8 @@ class AudioService {
 
         audioPath =
             "${audioPath}audios/audio_${DateTime.now().millisecond}.wav";
+        
+        File(audioPath).createSync(recursive: true);
 
         await _audioRecorder.start(RecordConfig(), path: audioPath);
         _recordingPath = audioPath;

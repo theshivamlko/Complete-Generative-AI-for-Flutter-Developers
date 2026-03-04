@@ -13,6 +13,44 @@ class ChatBubble extends StatelessWidget {
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
+  Widget _buildAudioMessageContent() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.mic,
+          size: 20,
+          color: message.isUser ? Colors.white : Colors.deepPurple,
+        ),
+        const SizedBox(width: 8),
+        // Audio waveform representation
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(
+            12,
+            (index) => Container(
+              width: 3,
+              height: [16.0, 24.0, 20.0, 28.0, 18.0, 26.0, 22.0, 30.0, 20.0, 24.0, 18.0, 22.0][index],
+              margin: const EdgeInsets.symmetric(horizontal: 1.5),
+              decoration: BoxDecoration(
+                color: message.isUser ? Colors.white70 : Colors.deepPurple.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          'Voice message',
+          style: TextStyle(
+            color: message.isUser ? Colors.white : Colors.black87,
+            fontSize: 15,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -56,13 +94,15 @@ class ChatBubble extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Text(
-                    message.text,
-                    style: TextStyle(
-                      color: message.isUser ? Colors.white : Colors.black87,
-                      fontSize: 15,
-                    ),
-                  ),
+                  child: message.type == MessageType.audio
+                      ? _buildAudioMessageContent()
+                      : Text(
+                          message.text,
+                          style: TextStyle(
+                            color: message.isUser ? Colors.white : Colors.black87,
+                            fontSize: 15,
+                          ),
+                        ),
                 ),
                 const SizedBox(height: 4),
                 Text(

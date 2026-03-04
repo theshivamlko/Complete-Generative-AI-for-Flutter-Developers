@@ -91,23 +91,18 @@ class ChatViewModel extends ChangeNotifier {
   Future<void> sendAudio(Uint8List audioBytes) async {
     if (isLoadingNotifier.value) return;
 
-    // Add audio message indicator
-    _messages.add(Message.ai("🎤 Processing audio..."));
+    // Add user's audio message bubble (persists in chat)
+    _messages.add(Message.userAudio());
     messagesNotifier.value = [..._messages];
 
     isLoadingNotifier.value = true;
 
     try {
-      // For now, send as a text message indicating audio was received
-      // In production, you would use a speech-to-text service to transcribe
-      final aiResponse = await _aiService.sendAudioTranscript(
-        '[Audio message received - ${audioBytes.length} bytes]',
-      );
-      _messages.removeLast(); // Remove processing indicator
+      // Send audio bytes as InlineDataPart to AI
+      final aiResponse = await _aiService.sendAudioTranscript(audioBytes);
       _messages.add(Message.ai(aiResponse));
       messagesNotifier.value = [..._messages];
     } catch (e) {
-      _messages.removeLast(); // Remove processing indicator
       _messages.add(Message.ai(
         "Sorry, I couldn't process the audio: ${e.toString()}",
       ));
