@@ -2,11 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:gal/gal.dart';
 import '../api/api_service.dart';
 import '../models/anime_style.dart';
 import '../widgets/image_picker_card.dart';
 import '../widgets/result_card.dart';
+import 'edit_image_screen.dart';
+import '../utils/image_saver.dart';
 
 class AnimeFilterScreen extends StatefulWidget {
   const AnimeFilterScreen({super.key});
@@ -122,47 +123,6 @@ class _AnimeFilterScreenState extends State<AnimeFilterScreen> {
     );
   }
 
-  Future<void> _saveImageToGallery(File imageFile) async {
-    try {
-      final hasAccess = await Gal.hasAccess(toAlbum: true);
-      if (!hasAccess) {
-        final request = await Gal.requestAccess(toAlbum: true);
-        if (!request) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Permission to access gallery denied.'),
-              ),
-            );
-          }
-          return;
-        }
-      }
-
-      await Gal.putImage(imageFile.path, album: 'MakeMeAnime');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Image saved successfully! at ${imageFile.path}'),
-            backgroundColor: const Color(0xFF1ED760),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } on GalException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save image: ${e.type.message}')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error saving image: $e')));
-      }
-    }
-  }
 
   void _showResultPopup() {
     if (_selectedImage == null) return;
@@ -222,7 +182,10 @@ class _AnimeFilterScreenState extends State<AnimeFilterScreen> {
                   child: ElevatedButton.icon(
                     onPressed: () {
                       if (_generatedImageFile != null) {
-                        _saveImageToGallery(_generatedImageFile!);
+                        ImageUtils.saveImageToGallery(
+                          context: context,
+                          imageFile: _generatedImageFile!,
+                        );
                       }
                       Navigator.of(context).pop();
                     },
@@ -412,6 +375,17 @@ class _AnimeFilterScreenState extends State<AnimeFilterScreen> {
               selectedFilter: _selectedFilter,
               primaryColor: theme.colorScheme.primary,
               onTap: _showResultPopup,
+              onEdit: () {
+                if (_generatedImageFile != null) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => EditImageScreen(
+                        imageFile: _generatedImageFile!,
+                      ),
+                    ),
+                  );
+                }
+              },
             ),
             const SizedBox(height: 40),
           ],

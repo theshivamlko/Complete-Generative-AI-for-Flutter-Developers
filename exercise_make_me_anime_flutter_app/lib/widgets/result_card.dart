@@ -8,6 +8,7 @@ class ResultCard extends StatelessWidget {
   final String selectedFilter;
   final Color primaryColor;
   final VoidCallback onTap;
+  final VoidCallback? onEdit;
 
   const ResultCard({
     super.key,
@@ -17,6 +18,7 @@ class ResultCard extends StatelessWidget {
     required this.selectedFilter,
     required this.primaryColor,
     required this.onTap,
+    this.onEdit,
   });
 
   @override
@@ -106,6 +108,23 @@ class ResultCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                       ],
+                    ),
+                  if (onEdit != null)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Material(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(12),
+                        child: IconButton(
+                          icon: const Icon(Icons.edit,
+                              color: Colors.white, size: 20),
+                          onPressed: onEdit,
+                          tooltip: 'Edit with prompt',
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ),
                     ),
                 ],
               )
