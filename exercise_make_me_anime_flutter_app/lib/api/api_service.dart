@@ -23,9 +23,24 @@ class ApiService {
     );
 
     final prompt =
-        """Be creative and make the given image into an anime style specifically $selectedFilter filter.
-         The image should be near as good as $selectedFilter anime styles, the background should be too match the $selectedFilter style. 
-         Change the pose of the persons in the image to some cool or calm or appropriate post according to $selectedFilter style.""";
+        """
+        
+## AGENT ROLE
+        Act as a creative image-to-anime transformation engine. Your goal is to reimagine a provided image in a high-quality anime aesthetic.
+
+## INSTRUCTIONS
+
+Follow these strict transformation rules:
+1. STYLE: Match the specific artistic nuances, line work, and color palette of the requested filter.
+2. BACKGROUND: Redesign the environment to be fully immersive and consistent with the chosen anime style.
+3. POSING: Adjust the character's pose to be cool, calm, or contextually appropriate based on the vibe of the selected filter.
+4. FIDELITY: Ensure the output quality is professional-grade and rivals the original source material of that style.
+
+## INPUT DATA
+Filter Style: $selectedFilter
+Image: [Image Attachment]
+        
+        """;
 
     final response = await http.post(
       url,
@@ -81,10 +96,7 @@ class ApiService {
     }
   }
 
-  static Future<File> editImage(
-    File imageFile,
-    String prompt,
-  ) async {
+  static Future<File> editImage(File imageFile, String prompt) async {
     final String apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
 
     if (apiKey.isEmpty || apiKey == "YOUR_API_KEY_HERE") {
@@ -95,7 +107,7 @@ class ApiService {
     final base64Image = base64Encode(bytes);
 
     final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent',
     );
 
     final response = await http.post(

@@ -6,11 +6,11 @@ class AnimeStyle {
 
   static List<String> get defaultFilters => [
     'Studio Ghibli',
-    'Cyberpunk Edgerunners',
+    'Cyberpunk The Game',
     'Makoto Shinkai (Your Name)',
     'Dragon Ball Z',
     'Naruto',
     'Watercolor Anime',
-    'Retro 90s Anime',
+    'Retro 1990s Anime',
   ];
 }
